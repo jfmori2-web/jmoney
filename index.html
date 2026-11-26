@@ -283,7 +283,7 @@ function render(){
         <td>${p.label||"–"}</td>
         <td><span class="tag ${p.kind}">${p.side==="short"?"Sold":"Bought"} ${p.kind}</span></td>
         <td class="num">${p.strike2?`${p.strike} / ${p.strike2}`:p.strike}</td>
-        <td class="num">${p.qty}</td>
+        <td class="num">${p.side==="short"?"−":"+"}${p.qty}</td>
         <td>${p.exp}</td>
         <td class="num">${dl<0?"expired":dl+" d"}</td>
         <td class="num" title="${p.prem==null?"":(p.side==="short"?"Credit received":"Paid")+": "+usd(p.prem*100*p.qty)}">${p.prem==null?"–":`${p.side==="short"?"+":"−"}${p.prem.toFixed(2)} <span class="note">${usd(p.prem*100*p.qty)}</span>`}</td>
