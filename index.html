@@ -248,7 +248,7 @@ function ladderSVG(sym,list,px,w){
   const lanes={call:[],put:[]};
   [...vis].sort((a,b)=>a.strike-b.strike).forEach(p=>{
     const up=p.kind==="call", col=up?"var(--call)":"var(--put)", x=X(p.strike), st=state(p,px);
-    const txt=`${p.strike2?p.strike+"/"+p.strike2:p.strike} ${p.kind==="call"?"C":"P"} · ${p.exp.slice(5).replace("-","/")}`;
+    const txt=`${p.strike2?p.strike+"/"+p.strike2:p.strike} ${p.kind==="call"?"C":"P"} · ${dleft(p.exp)===0?"today":dleft(p.exp)+"d"}`;
     const hw=txt.length*3.2+9;
     const L=lanes[p.kind]; let lane=0; while(L[lane]!=null && x-hw<L[lane]+6) lane++; L[lane]=x+hw;
     const ly=up?AX-30-lane*22:AX+40+lane*22;
