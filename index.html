@@ -60,7 +60,7 @@ label.chk{display:inline-flex;gap:6px;align-items:center;cursor:pointer;color:va
 .stock{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px 14px;display:flex;flex-direction:column;gap:10px}
 .stock.bad{border-color:var(--bad);box-shadow:0 0 0 2px var(--bad-soft)}
 .shead{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px}
-body.compact .tbl,body.compact .foot,body.compact .legend>span:not(#stamp),body.compact .expl{display:none}
+body.compact .tbl,body.compact .foot,body.compact .legend>span:not(#stamp):not(#sync),body.compact .expl{display:none}
 body.compact.haskey details.panel{display:none}
 body.compact .stock{padding:10px 14px 6px;gap:4px}
 body.compact #stocks{gap:10px!important}
@@ -120,6 +120,7 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:.78rem;ba
     <span>▼▲ solid = sold · ◇ outline = bought</span>
     <span><i class="sw" style="background:var(--price);width:3px"></i>Live price</span>
     <span class="status" id="stamp">Not loaded yet</span>
+    <span class="status" id="sync">Sync: connecting…</span>
     <span class="expl"><b style="color:var(--ok)">Green</b> more than 5% away · <b style="color:var(--warn)">Yellow</b> within 5% · <b style="color:var(--bad)">Red</b> within 2% or in the money</span>
   </div>
 
@@ -147,6 +148,9 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:.78rem;ba
     <div class="form">
       <label>Finnhub key<input type="password" id="key" style="width:330px" autocomplete="off"></label>
       <button class="btn" id="saveKey" type="button">Save key</button>
+      <label>Sync passcode<input type="password" id="pass" style="width:200px" autocomplete="off"></label>
+      <button class="btn" id="savePass" type="button">Save passcode</button>
+      <button class="btn" id="pushNow" type="button">Upload this device's list</button>
       <label>Refresh every<select id="every"><option value="60">1 minute</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></label>
     </div>
     <p class="note" style="margin-top:14px">Position list (copy it to keep a backup, or paste a new list from Claude and press Load):</p>
@@ -159,7 +163,7 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:.78rem;ba
     </div>
   </details>
 
-  <p class="foot">Prices from Finnhub (stock quotes only). Click a price to type one in by hand if a quote is missing. Distance = how far the stock must move to reach the strike you sold. Break-even is per position at expiry: calls = strike + premium, puts = strike − premium. For the Nvidia PMCC, use the tracker's combined break-even instead of the single-leg numbers. Positions and settings are saved in this browser on this Mac.</p>
+  <p class="foot">Prices from Finnhub (stock quotes only). Click a price to type one in by hand if a quote is missing. Distance = how far the stock must move to reach the strike you sold. Break-even is per position at expiry: calls = strike + premium, puts = strike − premium. For the Nvidia PMCC, use the tracker's combined break-even instead of the single-leg numbers. Your position list is shared between your devices through your Cloudflare Worker (changes need the sync passcode). The Finnhub key, passcode, checkboxes and view are saved per device.</p>
 </div>
 
 <script>
@@ -192,7 +196,33 @@ let key=store.get("key",DEFAULT_KEY), every=store.get("every",60), horizon=store
 let quotes=store.get("quotes",{}), manual={}, lastRed=new Set(), timer=null;
 const $=id=>document.getElementById(id);
 $("key").value=key; $("every").value=every; $("horizon").value=horizon; $("sound").checked=sound;
-const save=()=>{store.set("positions",positions);$("json").value=JSON.stringify(positions.map(({id,...r})=>r),null,1)};
+const SYNC_URL="https://jmoney-sync.jfmori.workers.dev/";
+let pass=store.get("pass",""), pushing=false; $("pass").value=pass;
+const sig=p=>[p.sym,p.kind,p.side,p.strike,p.strike2||"",p.exp].join("|");
+const cloudList=()=>positions.map(({id,show,...r})=>r);
+const tnow=()=>new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+function syncMsg(t,bad){$("sync").textContent="Sync: "+t;$("sync").className="status"+(bad?" err":"")}
+async function pushCloud(){
+  if(!pass){syncMsg("saved on this device only. Add your sync passcode under Settings.",true);return}
+  pushing=true;
+  try{const r=await fetch(SYNC_URL,{method:"PUT",headers:{"Content-Type":"application/json","X-Pass":pass},body:JSON.stringify(cloudList())});
+    if(r.status===401) syncMsg("wrong passcode. Check it under Settings.",true);
+    else if(!r.ok) syncMsg("couldn't save ("+r.status+")",true);
+    else syncMsg("saved to all devices ✓ "+tnow());
+  }catch(e){syncMsg("offline, saved on this device only",true)}
+  pushing=false;
+}
+async function pullCloud(){
+  if(pushing) return;
+  try{const r=await fetch(SYNC_URL,{cache:"no-store"}); if(!r.ok) throw 0; const arr=await r.json(); if(!Array.isArray(arr)) throw 0;
+    if(!arr.length){ if(pass){await pushCloud()} else syncMsg("the online list is empty. Add your passcode to upload this list.",true); return }
+    const showBy={}; positions.forEach(p=>showBy[sig(p)]=p.show);
+    const next=arr.map(norm); next.forEach(p=>{const k=sig(p); if(k in showBy) p.show=showBy[k]; else if(/LEAP/i.test(p.label)) p.show=false});
+    if(JSON.stringify(next.map(({id,show,...r})=>r))!==JSON.stringify(cloudList())){positions=next; save(false); render()}
+    syncMsg("up to date ✓ "+tnow());
+  }catch(e){syncMsg("couldn't reach the online list, using this device's copy",true)}
+}
+const save=(push=true)=>{store.set("positions",positions);$("json").value=JSON.stringify(cloudList(),null,1);if(push) pushCloud()};
 
 /* ---------- math ---------- */
 const today=()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate())};
@@ -215,6 +245,7 @@ const fmt=n=>n==null?"–":n.toLocaleString("en-US",{minimumFractionDigits:2,max
 
 /* ---------- prices ---------- */
 async function fetchQuotes(){
+  await pullCloud();
   if(!key){$("stamp").textContent="Add your Finnhub key under Settings (bottom of the page) to load live prices. You only do this once on each device.";$("stamp").className="status err";render();return}
   const syms=[...new Set(positions.map(p=>p.sym))];
   $("stamp").textContent="Updating…"; $("stamp").className="status"; let errs=[];
@@ -327,11 +358,13 @@ document.addEventListener("click",e=>{
     const done=()=>{const v=parseFloat(inp.value);if(v>0)manual[s]=v;render()};
     inp.addEventListener("keydown",k=>{if(k.key==="Enter")done();if(k.key==="Escape")render()});inp.addEventListener("blur",done)}
 });
-document.addEventListener("change",e=>{const t=e.target.closest("[data-t]");if(t){const p=positions.find(p=>p.id===t.dataset.t);if(p){p.show=t.checked;save();render()}}});
+document.addEventListener("change",e=>{const t=e.target.closest("[data-t]");if(t){const p=positions.find(p=>p.id===t.dataset.t);if(p){p.show=t.checked;save(false);render()}}});
 $("refresh").onclick=()=>{if(sound)beep.warm=true;fetchQuotes()};
 $("sound").onchange=e=>{sound=e.target.checked;store.set("sound",sound);if(sound){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)()}catch(x){}}};
 $("horizon").onchange=e=>{horizon=+e.target.value;store.set("horizon",horizon);render()};
 $("every").onchange=e=>{every=+e.target.value;store.set("every",every);schedule()};
+$("savePass").onclick=()=>{pass=$("pass").value.trim();store.set("pass",pass);syncMsg("passcode saved, checking…");pullCloud()};
+$("pushNow").onclick=()=>pushCloud();
 $("saveKey").onclick=()=>{key=$("key").value.trim();store.set("key",key);applyCompact();fetchQuotes()};
 $("addForm").addEventListener("submit",e=>{e.preventDefault();
   positions.push(norm({sym:$("fSym").value,kind:$("fKind").value,side:$("fSide").value,strike:$("fStrike").value,strike2:$("fStrike2").value||null,exp:$("fExp").value,qty:$("fQty").value,prem:$("fPrem").value,label:$("fLabel").value}));
@@ -347,7 +380,7 @@ let compact=store.get("compact",false);
 function applyCompact(){document.body.classList.toggle("compact",compact);document.body.classList.toggle("haskey",!!key);$("compactBtn").setAttribute("aria-pressed",compact);$("compactBtn").textContent=compact?"Full view":"Compact view"}
 $("compactBtn").onclick=()=>{compact=!compact;store.set("compact",compact);applyCompact();render()};
 applyCompact();
-save(); render(); fetchQuotes(); schedule();
+save(false); render(); fetchQuotes(); schedule();
 </script>
 </body>
 </html>
