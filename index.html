@@ -103,6 +103,17 @@ body.compact #stocks{gap:10px!important}
 .sedit .done{display:flex;gap:8px;justify-content:space-between}
 .btn.danger{color:var(--bad);border-color:var(--bad)}
 body.compact .sedit{display:flex}
+@media (min-width:1200px){
+ .sgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+ .scard{padding:20px 24px;gap:14px}
+ .scard .sname{font-size:1.7rem}
+ .scard .note,.scard .plan{font-size:.95rem}
+ .scard img.slogo{width:52px;height:52px}
+ .scard .pill{font-size:.9rem}
+ .sstats span{font-size:.8rem} .sstats b{font-size:1.3rem}
+ .stp{font-size:.92rem;max-width:250px;padding:7px 11px} .stp .sd{font-size:.8rem} .stp b{font-size:.92rem}
+ .stotals{font-size:1rem} .stotals b{font-size:1.25rem}
+}
 body.compact .steps,body.compact .plan,body.compact .sx{display:none}
 .slogo{width:40px;height:40px;border-radius:9px;align-self:center;flex:none}
 .tk{font-family:var(--display);font-weight:700;font-size:1.9rem;letter-spacing:.02em}
@@ -497,7 +508,7 @@ let strats=store.get("strats",null); strats=Array.isArray(strats)?strats.map(nst
 let stratsAsof=store.get("stratsAsof",DEFAULT_ASOF), stratsEdited=store.get("stratsEdited",""), editing=null, linkPos=true;
 $("json").value=pasteText();
 function stratSVG(s,px){
-  const w=640, padL=24, padR=24;
+  const w=innerWidth>=1200?880:640, padL=24, padR=24;
   const legs=s.legs.filter(l=>dleft(l.exp)>=0);
   const vals=[...legs.flatMap(l=>[l.strike,l.strike2].filter(Boolean)),...s.marks.map(m=>m.v)].filter(v=>isFinite(v)&&v>0); if(px) vals.push(px);
   if(!vals.length) return "";
@@ -616,10 +627,10 @@ $("stratView").addEventListener("click",e=>{const b=e.target.closest("[data-act]
   stratChanged(); if(act==="addLeg"||act==="delLeg") render();
 });
 let view=store.get("view","positions");
-function applyView(){const st=view==="strategies";$("posView").hidden=st;$("stratView").hidden=!st;$("vPos").setAttribute("aria-pressed",!st);$("vStrat").setAttribute("aria-pressed",st);if(st)renderStrategies()}
+function applyView(){const st=view==="strategies";$("posView").hidden=st;$("stratView").hidden=!st;$("vPos").setAttribute("aria-pressed",!st);$("vStrat").setAttribute("aria-pressed",st);if(st)renderStrategies();else renderPositions()}
 $("vPos").onclick=()=>{view="positions";store.set("view",view);applyView()};
 $("vStrat").onclick=()=>{view="strategies";store.set("view",view);applyView()};
-const renderPositions=render; render=function(){renderPositions(); if(view==="strategies") renderStrategies()};
+const renderPositions=render; render=function(){if(view==="strategies") renderStrategies(); else renderPositions()};
 applyView();
 
 save(false); render(); fetchQuotes(); schedule();
