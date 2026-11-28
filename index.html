@@ -65,6 +65,45 @@ body.compact.haskey details.panel{display:none}
 body.compact .stock{padding:10px 14px 6px;gap:4px}
 body.compact #stocks{gap:10px!important}
 #compactBtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg .btn{border:none;border-radius:0}
+.seg .btn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.stotals{display:flex;flex-wrap:wrap;gap:18px;align-items:baseline;color:var(--muted);font-size:.85rem;margin-bottom:12px}
+.stotals b{font-family:var(--mono);font-size:1.05rem}
+.pos{color:var(--ok)} .neg{color:var(--bad)}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:16px}
+.scard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.scard.bad{border-color:var(--bad);box-shadow:0 0 0 2px var(--bad-soft)}
+.scard .shead{display:flex;align-items:center;gap:12px}
+.scard .shead .pill{margin-left:auto}
+.sname{font-family:var(--display);font-weight:700;font-size:1.4rem;line-height:1.1}
+.sstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sstats div{background:var(--bg);border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sstats span{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.sstats b{font-family:var(--mono);font-size:1rem}
+.sx{margin:0}
+.steps{display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:4px}
+.stp{flex:none;display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:.76rem;max-width:190px}
+.stp .sd{color:var(--muted);font-size:.68rem}
+.stp b{font-family:var(--mono);font-size:.78rem}
+.arr{color:var(--muted);flex:none}
+.plan{margin:0;font-size:.82rem;border-top:1px dashed var(--line);padding-top:8px}
+.sbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.ebtn{margin-left:8px;padding:4px 10px;font-size:.8rem}
+.sedit{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:12px;font-size:.82rem}
+.sedit h4{margin:0 0 4px;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sedit .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:5px}
+.sedit input,.sedit select{padding:4px 6px;font-size:.82rem}
+.sedit input[type=number]{width:84px}
+.sedit textarea{min-height:52px;font-family:inherit;font-size:.82rem}
+.sedit .add{border:1px dashed var(--line);border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end}
+.sedit .add label{display:flex;flex-direction:column;gap:2px;font-size:.7rem;color:var(--muted)}
+.sedit .ck{display:flex;gap:5px;align-items:center;font-size:.75rem;color:var(--muted)}
+.sedit .add label.ck{flex-direction:row;align-items:center;gap:5px}
+.sedit .done{display:flex;gap:8px;justify-content:space-between}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+body.compact .sedit{display:flex}
+body.compact .steps,body.compact .plan,body.compact .sx{display:none}
 .slogo{width:40px;height:40px;border-radius:9px;align-self:center;flex:none}
 .tk{font-family:var(--display);font-weight:700;font-size:1.9rem;letter-spacing:.02em}
 .px{font-family:var(--display);font-weight:700;font-size:2.2rem;color:var(--price);font-variant-numeric:tabular-nums;cursor:pointer;border-bottom:1px dashed transparent}
@@ -109,10 +148,12 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:.78rem;ba
           <option value="9999">All</option><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days</option><option value="180">6 months</option>
         </select></label>
       <label class="chk"><input type="checkbox" id="sound"> Beep when something turns red</label>
+      <div class="seg" role="group" aria-label="Screen"><button class="btn" id="vPos" aria-pressed="true">Positions</button><button class="btn" id="vStrat" aria-pressed="false">Strategies</button></div>
       <button class="btn" id="compactBtn" aria-pressed="false">Compact view</button>
       <button class="btn primary" id="refresh">Refresh now</button>
     </div>
   </header>
+  <div id="posView">
   <div class="summary" id="summary"></div>
   <div class="legend">
     <span><i class="sw" style="background:var(--call)"></i>Call strike (above the line)</span>
@@ -142,6 +183,8 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:.78rem;ba
     </form>
     <p class="note">For a credit spread, enter the strike you sold as Strike and the one you bought as Spread long strike, and the net credit as Premium. The colour is based on the sold strike. Premium is per share: $8.07, not $807.</p>
   </details>
+  </div>
+  <div id="stratView" hidden></div>
 
   <details class="panel" id="settingsPanel">
     <summary>Settings and Sunday update</summary>
@@ -153,24 +196,24 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:.78rem;ba
       <button class="btn" id="pushNow" type="button">Upload this device's list</button>
       <label>Refresh every<select id="every"><option value="60">1 minute</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></label>
     </div>
-    <p class="note" style="margin-top:14px">Position list (copy it to keep a backup, or paste a new list from Claude and press Load):</p>
+    <p class="note" style="margin-top:14px">Positions and strategies in one list (copy it to keep a backup, or paste the Sunday list from Claude and press Load):</p>
     <textarea id="json" spellcheck="false"></textarea>
     <div class="form" style="margin-top:8px">
       <button class="btn" id="loadJson" type="button">Load pasted list</button>
       <button class="btn" id="copyJson" type="button">Copy list</button>
-      <button class="btn" id="resetJson" type="button">Reset to Nov 25 list</button>
+      <button class="btn" id="resetJson" type="button">Reset to Nov 27 list</button>
       <span class="status" id="jsonMsg"></span>
     </div>
   </details>
 
-  <p class="foot">Prices from Finnhub (stock quotes only). Click a price to type one in by hand if a quote is missing. Distance = how far the stock must move to reach the strike you sold. Break-even is per position at expiry: calls = strike + premium, puts = strike − premium. For the Nvidia PMCC, use the tracker's combined break-even instead of the single-leg numbers. Your position list is shared between your devices through your Cloudflare Worker (changes need the sync passcode). The Finnhub key, passcode, checkboxes and view are saved per device.</p>
+  <p class="foot">Prices from Finnhub (stock quotes only). Click a price to type one in by hand if a quote is missing. Distance = how far the stock must move to reach the strike you sold. Break-even is per position at expiry: calls = strike + premium, puts = strike − premium. For the Nvidia PMCC, use the tracker's combined break-even instead of the single-leg numbers. Your positions and strategies are shared between your devices through your Cloudflare Worker (changes need the sync passcode). The Finnhub key, passcode, checkboxes and view are saved per device.</p>
 </div>
 
 <script>
 /* ---------- starting list: Wealthsimple open positions, Nov 25 2026 export ---------- */
 const DEFAULT_KEY="";  // no key in the file: paste yours once under Settings on each device
 const DEFAULT_POS=[
- {sym:"TSLA",kind:"call",side:"short",strike:400,strike2:430,exp:"2026-12-11",qty:1,prem:8.07,label:"Call credit spread"},
+ {sym:"TSLA",kind:"call",side:"short",strike:410,exp:"2026-12-18",qty:1,prem:16.39,label:"Covered call"},
  {sym:"TSLA",kind:"put", side:"short",strike:380,strike2:365,exp:"2026-12-18",qty:1,prem:8.15,label:"Put credit spread"},
  {sym:"TSLA",kind:"put", side:"short",strike:355,strike2:345,exp:"2026-12-18",qty:1,prem:1.85,label:"Put credit spread"},
  {sym:"TSLA",kind:"call",side:"short",strike:390,strike2:415,exp:"2027-02-19",qty:1,prem:11.63,label:"Call credit spread"},
@@ -181,6 +224,7 @@ const DEFAULT_POS=[
  {sym:"NVDA",kind:"put", side:"short",strike:155,exp:"2026-12-18",qty:1,prem:17.83,label:"Short put"},
  {sym:"NVDA",kind:"call",side:"short",strike:180,exp:"2027-04-16",qty:1,prem:15.21,label:"PMCC short call"},
  {sym:"NVDA",kind:"call",side:"long", strike:100,exp:"2027-12-17",qty:1,prem:77.20,label:"PMCC LEAP",show:false},
+ {sym:"SPCX",kind:"put", side:"short",strike:125,exp:"2026-12-04",qty:2,prem:2.50,label:"Short put"},
  {sym:"SPCX",kind:"put", side:"short",strike:145,exp:"2027-12-17",qty:2,prem:27.00,label:"Short put"}
 ];
 const LOGOS={"NVDA": "data:image/png;base64,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", "SPCX": "data:image/png;base64,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", "TSLA": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAJ/UlEQVR42u2cW2wc1RnH/985M7O+ri/ZOGBoQ0iCCReVEJJCSSEUSqF9oZcHFJUiUVUViArRKhJCoogixENVFIVbRSshKIKHinJR25RyCaCGS9NASApE9treXd/W+LL22rvemTnnfH3Y8dre2K6EnXjBc55Wu7Mze37zXf7fd84spTe0IRwLDxEiCAGFgEJAIaAQUAgoBBQCCkcIKAQUAgoBhYBCQCGgEFA4QkAhoBBQCCgE9IUY1qm+IBGIQAAoeIcZzMGL2YeVDi6NeY/8wgMigiCAwAxj4CtWClrBGHDxUwEpSEoIASGC+RvDWkNrGAPDIIAELEmWBSkhZQCODfjk8rJOGhQBAFrD89jzoTWkpNpqEWsWsZhYt06sa5Eta2lNs2xooLo6VFeR45CUALHW8H0uFDiXM+NZMzpqhobNZ5/p9KAZGjKZDE/moXyQgGOTbQe8jDkZpKzl52IMfJ9dF4appkac0Wpt3GhvabPa2uSG9aK1VTQ3UVXV5zm/r8xYRqfTJpHy2zvUp8dVe1z393N2AsyIOOQ4kDIw1eWa0zIsPU9zYdeF68K2Zevp9oUX2jsusS/6mnXOZrGm+STZv5mY1F1d6uh/vfcP+Uc+0qkUT03BtqmqarlILQcgpXiqgIhjbdjgXH5pZNcV9tatYl3LQodzLhd4zcioyWTM2BhP5LgwBV+Bi/MhWBZVRai2VjQ2iqZG0dxMa2NyzRpqiC4Iazyrjh7z/nXQffugOn6cJyfhRCjirCggIhgjmpsju66IXP8de/slYr4JmJFRFY+rTz71P/5Ud3To3j4zPMK5HPsKWiPikJQwBiCgFEQIBBBxoQAQ2RaqqkVTozyjVW46296yxT7/PKvtHNF6+jw3wPP8Dz9yX33Nfe11neyBEEuJTUsAJATn886O7Y1PPCpaWk4wk7x/7Jj3znvewXfVx5+YoWEA1Nggz2iV678qv3KmOO00ua6Ftc79bq8ZGUUkUu4OQvDkZM0tNzvbLtaDg2ZoWPf26WRK9/SZkWF4HkWj1jmbnUt3ODsvt7dtFc3ljsz5/MR9D+Sf+hPV10PrUx6kmWHbOpli14MxxbTF+bz33r/d/a+4B97U3QnYtrXxbOfbVzvbLra3tMmz1otYDFLO4RBtGLv1dvJ9EM3cakvyaKbqBzdE7793RjEVL5ud0H19qiPuf/iR95/D+Weeyz3ye9ESc75xWeR710eu2CliMQDQBrat451zTnuqXUxKHs3U3Pbz6P33+sc+Lrz0cuHlv6r2DtHU5Fz29cg1VzuX7pCbN5Ftl5OdLfksK/fI4xO/eYAaGoL7LCVPTNhbL2p67mlRfJMIIIi5urHov+m098ER740D7oG3dHdCrF0bue7a6h993/nmzsLzL47dejtFo0sJ1UuOQUpRQ9S+8AL3jbfguc7Oy6t+eEPkW7vkmWfOmoQBc7ksDpQegxlCjN+5Z+qZZ6mxEczsujIWa/rzs9amjSXbnGMFxW+V1Na0Q3nvHyq88JL793/ooaHIrivNaEYlEuQ4K2dB03Ga8/nq3TdW777R2b5tZg7GzEAp3sNSAVHGCOBcLnPTLd6771NdLZRqfPIPkauuXIzO7EKkeKFpWKa/v7D/n5N7HzYjI1RTs8RMv+RilRmWhO1Y529xtm+D1lAquL3F6qH0ulRMBOXYLEzMVFfXsO8hedZ6Mzxcf9+vI1ddCa1nDKT0laA0mT7btKcHF9Iavi9aWyPfvY5qash2lq6tl0koGsOeF33w/pqf/LjkNQE+IjM+7n9wRMXjJj1oMmPsupzN2uefV3fXHgBggABtIIX7xpvewXfq77l7xvqMgRDuq6/nn/oTRaNk21RfJ9bGrPXrrQsusDadPedWGQMpdSKZufmnqr2DamsrQygWGWkDrWp/dUfdHb8AURBZhcg/81zu0cdNbx8XXDCDACG5ULA2b4odeIXq6wMTm6Y550WxmpMye/c9uYf2UVMjlA60kmWJhobItdfU33O3iK2B1rAsAP6hw+N37lGdnctCZ/lqMWZIAWFPPvhb/8jR+rv2WOe2ASj8bX/2l3vgOFRVNVN/EVFdLedyuq/fOrdtBkcpH8+O5VIC0Kkeam6i+vqZOTOz5+WffJqnphqfeAyWxVNT+T8+OfnwY5zLUV3d5xY+J61YZQYR1de7+1/xDx2u3n1jzU27C395ESCqrYXvl4lAMz6uupMBoLLUNvecPDGhkykIEUS3mZOQWBtz33zbP3rMpAcn9+7zDx+hmmqqrl4uOstdzTODmaJRnszl9u4rPP8C+x7VVJfTKYLwfB2PA9cuekKAoPv6zdAwWSf8VBMoqbGf3aYHBqAUReuXt5Q/Of0grWFJamw0wyMQc6TKXEZQ8XjRmhYGZACpkimTnaCa6vlnboxJp8lx5ilWKrcnXcy4tlVWVcwVB5bqSgSxfNFcrOOd8L0TNfTMsO1lN5xT0rQvKbr5PiLbNn39emh42pfmr4cBqI74/7/Ql21VgxmWZTIZk+pZbIZE0Fp3J2BZp7JRXxnLPlJyPq+6uxcExAzAjIzovv7AiVbdupg2qj2+uOPonj4zOkqr0YIASKE6O0tqcF5AqjvBufxime5LC8gY2LZJpjifXyQMqY74dD9o9S09k2Xpwc/0wMBCQQqAjsdX0HxWFBAzpDTZrEmkZhpGc/2LCwWdTMGyTpLGqfgYJARc1493LhjEBwZ1erC8Y7u6dnfwtA4s8yNjAJhUyoyPQ4qVSmErDYgZlqW7uoL22IkRurMLrgshV6sFMcOxdW+/yWTm3f6iOuLB1o5VC4gsy4yM6FRvOSAhwKy7umBJrOodZkJwLqcTiTmAiiksm9U9vbDtFUxhFQCICEqX1+vFIqO3Tw8Pr2CRUTF7FAUFgEoFR7HISCR5IrdgR2nVpHkD29KJFLtuWRhS8TiKC/arGxDIsnU6rQfSZX0y3RFfcTqVAIghpRkfDzpnpRVqpVR3EisdgCokBgkUCqqza7aG1kNDun+A7BBQsHLNqqNjWh9ycaWQM5nQglDaLqU7u4IlVgMAuivBU1MrnsIqA5AxsG3d08vj2VJUVh3xldWHlQSImSxLDw/r3t7SL1KdnSvbJ6swF5OSJ3MqkQQAITmfN6meFS8yKgkQETxfTXfOTP+AHhycZzF+VT8ORaSLiQxQiaTJTgRb5UNA0zuKLdWdhOvO6pOFMWhOnLZ1f78eGgKg2zuA8InDE3aCcmbM9PYFFlQBErHCYpCUnJ9SyRQ8T/X2hoDm7XxolUiqZIpHMhQCmjeRmWRKHW/nqXwlFBkVBsgYsm2dSvmHPwBjFT/1vEgicyKqp9fk8hRxKsS/KgkQACk4O6mz2cqJ0BUGKHiWvrL+6yD854UQUAgoBBQCCgGFgEJAIaBwhIBCQCGgEFAIKAQUAlpd439DB1WFPukVbAAAAABJRU5ErkJggg=="};
@@ -199,7 +243,10 @@ $("key").value=key; $("every").value=every; $("horizon").value=horizon; $("sound
 const SYNC_URL="https://jmoney-sync.jfmori.workers.dev/";
 let pass=store.get("pass",""), pushing=false; $("pass").value=pass;
 const sig=p=>[p.sym,p.kind,p.side,p.strike,p.strike2||"",p.exp].join("|");
-const cloudList=()=>positions.map(({id,show,...r})=>r);
+const posList=()=>positions.map(({id,show,...r})=>r);
+const STRAT_TAG="_strategies";
+const cloudList=()=>[...posList(),{sym:STRAT_TAG,asof:stratsAsof,edited:stratsEdited,list:strats}];
+const pasteText=()=>JSON.stringify({asof:stratsAsof,positions:posList(),strategies:strats},null,1);
 const tnow=()=>new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
 function syncMsg(t,bad){$("sync").textContent="Sync: "+t;$("sync").className="status"+(bad?" err":"")}
 async function pushCloud(){
@@ -214,15 +261,20 @@ async function pushCloud(){
 }
 async function pullCloud(){
   if(pushing) return;
-  try{const r=await fetch(SYNC_URL,{cache:"no-store"}); if(!r.ok) throw 0; const arr=await r.json(); if(!Array.isArray(arr)) throw 0;
+  try{const r=await fetch(SYNC_URL,{cache:"no-store"}); if(!r.ok) throw 0; const raw=await r.json(); if(!Array.isArray(raw)) throw 0;
+    const sEl=raw.find(x=>x&&x.sym===STRAT_TAG), arr=raw.filter(x=>x&&x.sym!==STRAT_TAG);
     if(!arr.length){ if(pass){await pushCloud()} else syncMsg("the online list is empty. Add your passcode to upload this list.",true); return }
     const showBy={}; positions.forEach(p=>showBy[sig(p)]=p.show);
     const next=arr.map(norm); next.forEach(p=>{const k=sig(p); if(k in showBy) p.show=showBy[k]; else if(/LEAP/i.test(p.label)) p.show=false});
-    if(JSON.stringify(next.map(({id,show,...r})=>r))!==JSON.stringify(cloudList())){positions=next; save(false); render()}
+    let changed=false;
+    if(JSON.stringify(next.map(({id,show,...r})=>r))!==JSON.stringify(posList())){positions=next; changed=true}
+    if(sEl&&Array.isArray(sEl.list)){const nl=sEl.list.map(nstrat); if(JSON.stringify(nl)!==JSON.stringify(strats)||sEl.asof!==stratsAsof){strats=nl;stratsAsof=sEl.asof||stratsAsof;stratsEdited=sEl.edited||"";changed=true}}
+    else if(pass){changed=false; save(false); render(); await pushCloud(); syncMsg("strategies uploaded ✓ "+tnow()); return}
+    if(changed){save(false); render()}
     syncMsg("up to date ✓ "+tnow());
   }catch(e){syncMsg("couldn't reach the online list, using this device's copy",true)}
 }
-const save=(push=true)=>{store.set("positions",positions);$("json").value=JSON.stringify(cloudList(),null,1);if(push) pushCloud()};
+const save=(push=true)=>{store.set("positions",positions);store.set("strats",strats);store.set("stratsAsof",stratsAsof);store.set("stratsEdited",stratsEdited);$("json").value=pasteText();if(push) pushCloud()};
 
 /* ---------- math ---------- */
 const today=()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate())};
@@ -369,9 +421,13 @@ $("saveKey").onclick=()=>{key=$("key").value.trim();store.set("key",key);applyCo
 $("addForm").addEventListener("submit",e=>{e.preventDefault();
   positions.push(norm({sym:$("fSym").value,kind:$("fKind").value,side:$("fSide").value,strike:$("fStrike").value,strike2:$("fStrike2").value||null,exp:$("fExp").value,qty:$("fQty").value,prem:$("fPrem").value,label:$("fLabel").value}));
   save();e.target.reset();$("fQty").value=1;fetchQuotes()});
-$("loadJson").onclick=()=>{try{const arr=JSON.parse($("json").value);if(!Array.isArray(arr))throw 0;positions=arr.map(norm);save();$("jsonMsg").textContent="Loaded "+positions.length+" positions.";fetchQuotes()}catch(x){$("jsonMsg").textContent="That text isn't a valid position list. Nothing changed."}};
+$("loadJson").onclick=()=>{try{const d=JSON.parse($("json").value);let msg;
+  if(Array.isArray(d)){const sEl=d.find(x=>x&&x.sym===STRAT_TAG);positions=d.filter(x=>x&&x.sym!==STRAT_TAG).map(norm);if(sEl){strats=sEl.list.map(nstrat);stratsAsof=sEl.asof||stratsAsof;stratsEdited=""}msg="Loaded "+positions.length+" positions"+(sEl?" and "+strats.length+" strategies.":". Strategies unchanged.")}
+  else if(d&&Array.isArray(d.positions)){positions=d.positions.map(norm);if(Array.isArray(d.strategies)){strats=d.strategies.map(nstrat);stratsAsof=d.asof||stratsAsof;stratsEdited=""}msg="Loaded "+positions.length+" positions and "+strats.length+" strategies."}
+  else throw 0;
+  save();$("jsonMsg").textContent=msg;fetchQuotes()}catch(x){$("jsonMsg").textContent="That text isn't a valid list. Nothing changed."}};
 $("copyJson").onclick=async()=>{try{await navigator.clipboard.writeText($("json").value);$("jsonMsg").textContent="Copied."}catch(x){$("json").select();$("jsonMsg").textContent="Selected. Press Cmd+C to copy."}};
-$("resetJson").onclick=()=>{positions=DEFAULT_POS.map(norm);save();$("jsonMsg").textContent="Back to the Nov 25 list.";fetchQuotes()};
+$("resetJson").onclick=()=>{positions=DEFAULT_POS.map(norm);strats=DEFAULT_STRATS.map(nstrat);stratsAsof=DEFAULT_ASOF;stratsEdited="";editing=null;save();$("jsonMsg").textContent="Back to the Nov 27 positions and strategies.";fetchQuotes()};
 let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(render,150)});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)fetchQuotes()});
 
@@ -380,6 +436,192 @@ let compact=store.get("compact",false);
 function applyCompact(){document.body.classList.toggle("compact",compact);document.body.classList.toggle("haskey",!!key);$("compactBtn").setAttribute("aria-pressed",compact);$("compactBtn").textContent=compact?"Full view":"Compact view"}
 $("compactBtn").onclick=()=>{compact=!compact;store.set("compact",compact);applyCompact();render()};
 applyCompact();
+/* ---------- STRATEGIES: starting list from the Nov 27 export. After that they live in the synced list (Sunday paste + edits on the cards) ---------- */
+const DEFAULT_ASOF="Nov 27, 2026";
+const DEFAULT_STRATS=[
+ {sym:"NVDA",name:"Poor man's covered call",
+  legs:[{kind:"call",side:"long",strike:100,exp:"2027-12-17",qty:1,prem:77.20,label:"LEAP"},
+        {kind:"call",side:"short",strike:180,exp:"2027-04-16",qty:1,prem:15.21,label:"Short call"}],
+  marks:[{v:177.20,t:"BE at start"},{v:184.94,t:"BE now"},{v:169.73,t:"BE if $180 expires"}],
+  stats:[["Banked (closed calls)",-774],["Open credit",1521],["LEAP cost",-7720]],
+  extra:"If called away at $180 and you close both legs: about +$1,027.",
+  steps:[["Nov 13","Bought Dec 2027 $100 LEAP",-7720],["Nov 13","Sold Dec 18 $185 call",495],["Nov 20","Rolled down to Dec 18 $160",163],["Nov 23","Rolled up and out to Apr 16 $180",89]],
+  plan:"Buy back the $180 at $7.60 (GTC) to bank about +$760 and drop the break-even to $177.33. Roll up and out only for a credit; never roll down."},
+ {sym:"NVDA",name:"Short puts → wheel",
+  legs:[{kind:"put",side:"short",strike:150,exp:"2026-12-11",qty:1,prem:8.37,label:"Short put"},
+        {kind:"put",side:"short",strike:155,exp:"2026-12-18",qty:1,prem:17.83,label:"Short put"}],
+  marks:[{v:145.47,t:"Cost if $150 assigned"},{v:149.41,t:"Cost if $155 assigned"}],
+  stats:[["Banked (closed puts)",-1531],["Open credit",2620],["Cash if both assigned",30500,"n"]],
+  extra:"The cost if assigned counts every roll in that chain, so it is what the 100 shares would really cost you.",
+  steps:[["Nov 20","Sold Nov 27 $120 put",94],["Nov 20","Rolled to Dec 4 $115",6],["Nov 23","Closed the $115",-23],["Nov 23","Sold Nov 27 $155 put",226],["Nov 23","Sold Dec 7 $155 put",392],["Nov 24","Rolled $155 → Dec 11 $150",227],["Nov 25","Rolled $155 → Dec 18 $155",167]],
+  plan:"If assigned, start the wheel: sell covered calls above your cost if assigned."},
+ {sym:"TSLA",name:"Covered calls (1,153 shares)",
+  legs:[{kind:"call",side:"short",strike:410,exp:"2026-12-18",qty:1,prem:16.39,label:"Covered call"},
+        {kind:"call",side:"short",strike:390,strike2:415,exp:"2027-02-19",qty:1,prem:11.63,label:"Call spread"},
+        {kind:"call",side:"short",strike:440,exp:"2027-02-19",qty:2,prem:17.07,label:"Covered call"}],
+  marks:[{v:401.53,t:"Share cost (NB avg)"}],
+  stats:[["Banked (closed calls)",123],["Open credit",6216],["Shares at Wealthsimple",1153,"n#"]],
+  extra:"",
+  steps:[["Nov 11","Sold Dec 11 $395 calls ×2",3550],["Nov 11","Sold Dec 11 $400/$430 ×2",1614],["Nov 16","Rolled $395s → Feb $440",608],["Nov 20","Rolled 1× $400/$430 → $380/$405",223],["Nov 23","Rolled $380/$405 → Feb $390/$415",-98],["Nov 27","953 shares arrived",null],["Nov 27","Rolled last $400/$430 → Dec 18 $410",442]],
+  plan:"The shares have landed: sell the Feb $415 so the $390 becomes a plain covered call. Watch the Dec 18 $410."},
+ {sym:"TSLA",name:"Put credit spreads",
+  legs:[{kind:"put",side:"short",strike:380,strike2:365,exp:"2026-12-18",qty:1,prem:8.15,label:"Put spread"},
+        {kind:"put",side:"short",strike:355,strike2:345,exp:"2026-12-18",qty:1,prem:1.85,label:"Put spread"}],
+  marks:[{v:371.85,t:"BE $380/$365"},{v:353.15,t:"BE $355/$345"}],
+  stats:[["Banked (closed rolls)",-889],["Open credit",1000],["Max loss left",-1500]],
+  extra:"",
+  steps:[["Oct 26","Sold Nov 9 $380/$365",335],["Nov 2","Sold Dec 18 $355/$345",185],["Nov 6","Rolled to Nov 27 $380/$365",-309],["Nov 20","Rolled to Dec 18 $380/$365",-100]],
+  plan:"Alert at $360. If Tesla breaks $355, roll out to January for a credit."},
+ {sym:"TSLA",name:"Collar (crash insurance)",
+  legs:[{kind:"put",side:"long",strike:290,exp:"2027-09-17",qty:5,prem:22.10,label:"Protective puts"},
+        {kind:"call",side:"short",strike:450,exp:"2027-09-17",qty:1,prem:44.80,label:"Collar call"}],
+  marks:[{v:267.90,t:"Puts pay below"}],
+  stats:[["Puts cost",-11050],["Call credit",4480],["Net cost",-6570]],
+  extra:"Protects 500 shares below $290 until Sep 17, 2027.",
+  steps:[["Nov 17","Sold Sep 2027 $450 call",4480],["Nov 17","Bought 5 Sep 2027 $290 puts",-11050]],
+  plan:"Roll the puts around May 2027. After a crash, consider selling $250 puts against them."},
+ {sym:"SPCX",name:"Short puts + 200 shares",
+  legs:[{kind:"put",side:"short",strike:125,exp:"2026-12-04",qty:2,prem:2.50,label:"Short put"},
+        {kind:"put",side:"short",strike:145,exp:"2027-12-17",qty:2,prem:27.00,label:"Short put"}],
+  marks:[{v:122.50,t:"Cost if $125 assigned"},{v:118.00,t:"BE $145 puts"}],
+  stats:[["Open credit",5900],["Shares at Wealthsimple",200,"n#"],["Cash if all assigned",54000,"n"]],
+  extra:"",
+  steps:[["Oct 28","Sold Dec 2027 $145 puts ×2",5400],["Nov 25","200 shares arrived",null],["Nov 27","Sold Dec 4 $125 puts ×2",500]],
+  plan:"The 200 shares are ready for covered calls. If the $125s are assigned, you'd hold 400 shares."}
+];
+const nstrat=x=>({sym:String(x.sym||"TSLA").toUpperCase(),name:x.name||"Strategy",
+  legs:(x.legs||[]).map(l=>({kind:l.kind==="put"?"put":"call",side:l.side==="long"?"long":"short",strike:+l.strike,...(l.strike2?{strike2:+l.strike2}:{}),exp:l.exp,qty:+l.qty||1,prem:l.prem==null||l.prem===""?null:+l.prem,label:l.label||""})),
+  marks:(x.marks||[]).map(m=>({v:+m.v,t:m.t||""})),stats:(x.stats||[]).map(a=>[a[0]||"",+a[1]||0,...(a[2]?[a[2]]:[])]),
+  extra:x.extra||"",steps:(x.steps||[]).map(a=>[a[0]||"",a[1]||"",a[2]==null||a[2]===""?null:+a[2]]),plan:x.plan||""});
+let strats=store.get("strats",null); strats=Array.isArray(strats)?strats.map(nstrat):DEFAULT_STRATS.map(nstrat);
+let stratsAsof=store.get("stratsAsof",DEFAULT_ASOF), stratsEdited=store.get("stratsEdited",""), editing=null, linkPos=true;
+$("json").value=pasteText();
+function stratSVG(s,px){
+  const w=640, padL=24, padR=24;
+  const legs=s.legs.filter(l=>dleft(l.exp)>=0);
+  const vals=[...legs.flatMap(l=>[l.strike,l.strike2].filter(Boolean)),...s.marks.map(m=>m.v)].filter(v=>isFinite(v)&&v>0); if(px) vals.push(px);
+  if(!vals.length) return "";
+  let lo=Math.min(...vals), hi=Math.max(...vals); const span=Math.max(hi-lo,lo*0.06); lo-=span*0.1; hi+=span*0.1;
+  const X=v=>padL+(v-lo)/(hi-lo)*(w-padL-padR);
+  const lab=l=>`${l.strike2?l.strike+"/"+l.strike2:l.strike}${l.kind==="call"?"C":"P"} ×${l.qty} · ${dleft(l.exp)}d`;
+  const lane=(items,txt)=>{const L=[],out={};[...items].sort((a,b)=>a.v-b.v).forEach(it=>{const x=X(it.v),hw=txt(it).length*3.3+9;let k=0;while(L[k]!=null&&x-hw<L[k]+6)k++;L[k]=x+hw;out[it.i]=k});return [out,L.length||1]};
+  const calls=legs.map((l,i)=>({...l,i,v:l.strike})).filter(l=>l.kind==="call"), puts=legs.map((l,i)=>({...l,i,v:l.strike})).filter(l=>l.kind==="put");
+  const [cl,nc]=lane(calls,lab), [pl,np]=lane(puts,lab), mk=s.marks.map((m,i)=>({...m,i})), [ml,nm]=lane(mk,m=>m.t+" "+m.v.toFixed(2));
+  const AX=34+nc*22, PB=AX+28+np*22, H=PB+8+nm*20+6;
+  let o=`<svg class="ladder" viewBox="0 0 ${w} ${H}" role="img" aria-label="${s.sym} ${s.name}">`;
+  o+=`<line x1="${padL}" x2="${w-padR}" y1="${AX}" y2="${AX}" stroke="var(--line)" stroke-width="2"/>`;
+  const step=[1,2,5,10,20,25,50,100].find(k=>(hi-lo)/k<=6)||100;
+  for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step){const x=X(v);o+=`<text x="${x}" y="${AX+14}" text-anchor="middle" font-size="10" fill="var(--muted)">${v}</text>`}
+  // break-even / cost marks: dashed lines with labels at the bottom
+  const C=(x,hw)=>Math.min(w-hw-2,Math.max(hw+2,x));
+  mk.forEach(m=>{const x=X(m.v),y=PB+16+ml[m.i]*20,tx=C(x,(m.t+" "+m.v.toFixed(2)).length*3.2+4);o+=`<line x1="${x}" x2="${x}" y1="${AX-10}" y2="${y-12}" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="3 3" opacity=".55"/><text x="${tx}" y="${y}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--ink)">${m.t} ${m.v.toFixed(2)}</text>`});
+  // legs
+  [...calls,...puts].forEach(l=>{const up=l.kind==="call",col=up?"var(--call)":"var(--put)",x=X(l.strike),st=state(l,px),k=up?cl[l.i]:pl[l.i];
+    const ly=up?AX-24-k*22:AX+40+k*22, txt=lab(l), hw=txt.length*3.3+9;
+    const ring=l.side==="long"?"var(--line)":st==="bad"?"var(--bad)":st==="warn"?"var(--warn)":st==="ok"?"var(--ok)":"var(--muted)";
+    if(l.strike2){const x2=X(l.strike2);o+=`<line x1="${Math.min(x,x2)}" x2="${Math.max(x,x2)}" y1="${up?AX-8:AX+8}" y2="${up?AX-8:AX+8}" stroke="${col}" stroke-width="5" stroke-linecap="round" opacity=".35"/><path d="M${x2-5},${up?AX-8:AX+8} l5,-5 l5,5 l-5,5 z" fill="var(--surface)" stroke="${col}" stroke-width="1.5"/>`}
+    if(l.side==="short") o+=up?`<path d="M${x-7},${AX-15} h14 l-7,10 z" fill="${col}"/>`:`<path d="M${x-7},${AX+15} h14 l-7,-10 z" fill="${col}"/>`;
+    else o+=`<path d="M${x-6},${up?AX-10:AX+10} l6,-6 l6,6 l-6,6 z" fill="var(--surface)" stroke="${col}" stroke-width="2"/>`;
+    o+=`<line x1="${x}" x2="${x}" y1="${up?ly+4:AX+16}" y2="${up?AX-15:ly-12}" stroke="${col}" opacity=".5"/>`;
+    const cx=C(x,hw); o+=`<rect x="${cx-hw}" y="${ly-12}" width="${2*hw}" height="17" rx="8" fill="var(--surface)" stroke="${ring}" stroke-width="${l.side==="long"?1:2}"/><text x="${cx}" y="${ly}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink)">${txt}</text>`});
+  if(px){const x=X(px);o+=`<line x1="${x}" x2="${x}" y1="4" y2="${H-4}" stroke="var(--price)" stroke-width="3" opacity=".9"/><rect x="${x-32}" y="0" width="64" height="16" rx="4" fill="var(--price)"/><text x="${x}" y="12" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">${fmt(px)}</text>`}
+  return o+`</svg>`;
+}
+const esc=t=>String(t??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+const shortDate=iso=>{const [y,m,d]=iso.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("en-US",{month:"short",day:"numeric"})};
+const isoToday=()=>{const n=new Date();return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0")};
+function editHTML(s,i){
+  const I=(p,v,t="text",w)=>`<input data-p="${p}" type="${t}" ${t==="number"?'step="any"':""} value="${esc(v)}"${w?` style="width:${w}px"`:""}>`;
+  const S=(p,v,opts)=>`<select data-p="${p}">${opts.map(([k,t])=>`<option value="${k}"${k===v?" selected":""}>${t}</option>`).join("")}</select>`;
+  const X=(a,j,t)=>`<button class="x" data-act="${a}" data-j="${j}" title="${t}" aria-label="${t}">✕</button>`;
+  const firstShort=s.legs.find(l=>l.side==="short");
+  return `<div class="sedit" data-i="${i}">
+   <div class="row">${I("name",s.name,"text",230)} ${I("sym",s.sym,"text",70)}</div>
+   <div><h4>Key numbers</h4>${s.stats.map((a,j)=>`<div class="row">${I(`stats.${j}.0`,a[0],"text",190)} ${I(`stats.${j}.1`,a[1],"number",100)} ${X("delStat",j,"Remove this number")}</div>`).join("")}
+     <button class="btn ebtn" data-act="addStat">+ Number</button></div>
+   <div><h4>Legs (open options)</h4>${s.legs.map((l,j)=>`<div class="row">${S(`legs.${j}.side`,l.side,[["short","Sold"],["long","Bought"]])}${S(`legs.${j}.kind`,l.kind,[["call","Call"],["put","Put"]])}
+       ${I(`legs.${j}.strike`,l.strike,"number",70)} / ${I(`legs.${j}.strike2`,l.strike2||"","number",70)} ${I(`legs.${j}.exp`,l.exp,"date")} ×${I(`legs.${j}.qty`,l.qty,"number",50)} @${I(`legs.${j}.prem`,l.prem??"","number",70)} ${X("delLeg",j,"Close this leg")}</div>`).join("")||'<p class="note">No open legs.</p>'}
+     <div class="add"><label>Side<select id="nl_side"><option value="short">Sold</option><option value="long">Bought</option></select></label>
+       <label>Type<select id="nl_kind"><option value="call">Call</option><option value="put">Put</option></select></label>
+       <label>Strike<input id="nl_strike" type="number" step="any" style="width:70px"></label><label>Spread strike<input id="nl_strike2" type="number" step="any" style="width:70px"></label>
+       <label>Expiry<input id="nl_exp" type="date"></label><label>Qty<input id="nl_qty" type="number" value="1" style="width:50px"></label>
+       <label>Premium/sh<input id="nl_prem" type="number" step="0.01" style="width:70px"></label><label>Label<input id="nl_label" type="text" style="width:110px" placeholder="Covered call"></label>
+       <button class="btn" data-act="addLeg">+ Add leg</button></div>
+     <label class="ck"><input type="checkbox" id="linkPos" ${linkPos?"checked":""}> Also add / remove the leg on the Positions screen</label></div>
+   <div><h4>Break-even and cost lines</h4>${s.marks.map((m,j)=>`<div class="row">${I(`marks.${j}.t`,m.t,"text",190)} ${I(`marks.${j}.v`,m.v,"number",90)} ${X("delMark",j,"Remove this line")}</div>`).join("")}
+     <button class="btn ebtn" data-act="addMark">+ Line</button></div>
+   <div><h4>Roll history</h4>${s.steps.map((a,j)=>`<div class="row">${I(`steps.${j}.0`,a[0],"text",64)} ${I(`steps.${j}.1`,a[1],"text",230)} ${I(`steps.${j}.2`,a[2]??"","number",80)} ${X("delStep",j,"Remove this step")}</div>`).join("")}
+     <div class="add"><label>Date<input id="ns_date" type="date" value="${isoToday()}"></label><label>What happened<input id="ns_text" type="text" style="width:210px" placeholder="Rolled $410 → Jan 15 $420"></label>
+       <label>Paid (+) / cost (−) $<input id="ns_amt" type="number" step="any" style="width:80px" placeholder="+250"></label>
+       <label class="ck"><input type="checkbox" id="ns_be" ${s.marks.length?"checked":""}> Move break-even lines by it, over <input id="ns_sh" type="number" value="${100*(firstShort?firstShort.qty:1)}" style="width:62px"> shares</label>
+       <button class="btn" data-act="addStep">+ Log it</button></div>
+     <p class="note">A credit lowers the break-even lines, a debit raises them. Untick it for call credit spreads.</p></div>
+   <div><h4>Note</h4><textarea data-p="extra">${esc(s.extra)}</textarea></div>
+   <div><h4>Plan</h4><textarea data-p="plan">${esc(s.plan)}</textarea></div>
+   <div class="done"><button class="btn primary" data-act="done">Done</button><button class="btn danger" data-act="delStrat">Delete this strategy</button></div>
+  </div>`;
+}
+function renderStrategies(){
+  const box=$("stratView"); if(!box) return;
+  if(editing!=null&&box.contains(document.activeElement)&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return; // don't wipe what you're typing
+  const money=(v,f)=>{if(v==null)return "";if(f==="n#")return v.toLocaleString("en-US");const t="$"+Math.abs(Math.round(v)).toLocaleString("en-US");return f==="n"?t:(v<0?"−"+t:"+"+t)};
+  const cls=(v,f)=>f?"":v<0?"neg":v>0?"pos":"";
+  let bank=0,open=0; strats.forEach(s=>s.stats.forEach(([l,v])=>{if(/^Banked/i.test(l))bank+=v;if(/^Open credit/i.test(l))open+=v}));
+  box.innerHTML=`<div class="sbar"><div class="stotals" style="margin:0"><span>From the export of ${esc(stratsAsof)}${stratsEdited?` · edited ${esc(stratsEdited)}`:""}</span><span>Banked <b class="${bank<0?"neg":"pos"}">${money(bank)}</b></span><span>Open credit <b class="pos">${money(open)}</b></span></div>
+    <button class="btn" data-act="newStrat" style="margin-left:auto">+ New strategy</button></div>
+  <div class="sgrid">${strats.map((s,i)=>{const px=priceOf(s.sym);const sts=s.legs.filter(l=>l.side==="short").map(l=>state(l,px));
+    const worst=sts.includes("bad")?"bad":sts.includes("warn")?"warn":sts.includes("ok")?"ok":"neutral";
+    return `<article class="scard ${worst==="bad"?"bad":""}" data-i="${i}">
+      <div class="shead">${LOGOS[s.sym]?`<img class="slogo" src="${LOGOS[s.sym]}" alt="">`:""}<div><div class="sname">${esc(s.name)}</div><div class="note">${esc(s.sym)} · ${px?fmt(px):"no price"}</div></div>
+        <span class="pill ${worst}"><i></i>${worst==="bad"?"Needs attention":worst==="warn"?"Getting close":worst==="ok"?"All safe":"–"}</span>
+        ${editing===i?"":`<button class="btn ebtn" data-act="edit">Edit</button>`}</div>
+      <div class="sstats">${s.stats.map(([l,v,f])=>`<div><span>${esc(l)}</span><b class="${cls(v,f)}">${money(v,f)}</b></div>`).join("")}</div>
+      ${stratSVG(s,px)}
+      ${s.extra?`<p class="note sx">${esc(s.extra)}</p>`:""}
+      ${s.steps.length?`<div class="steps">${s.steps.map(([d,t,a])=>`<div class="stp"><span class="sd">${esc(d)}</span><span class="st">${esc(t)}</span>${a==null?"":`<b class="${a<0?"neg":"pos"}">${money(a)}</b>`}</div>`).join('<span class="arr">→</span>')}</div>`:""}
+      ${s.plan?`<p class="plan"><b>Plan:</b> ${esc(s.plan)}</p>`:""}
+      ${editing===i?editHTML(s,i):""}
+    </article>`}).join("")}</div>`;
+}
+function stratChanged(rerender=true){stratsEdited=shortDate(isoToday());save();if(rerender){const y=scrollY;renderStrategies();scrollTo(0,y)}}
+function setPath(o,p,v){const k=p.split(".");let t=o;for(let n=0;n<k.length-1;n++)t=t[k[n]];t[k[k.length-1]]=v}
+const posMatch=(sym,l)=>p=>p.sym===sym&&p.kind===l.kind&&p.side===l.side&&p.strike===+l.strike&&p.exp===l.exp;
+$("stratView").addEventListener("change",e=>{const el=e.target;
+  if(el.id==="linkPos"){linkPos=el.checked;return}
+  const p=el.dataset.p; if(!p) return; const i=+el.closest(".sedit").dataset.i, s=strats[i];
+  let v=el.value; if(el.type==="number") v=v===""?null:+v; if(p==="sym") v=v.toUpperCase().trim();
+  if(/^legs\.\d+\.strike2$/.test(p)&&!v){delete s.legs[+p.split(".")[1]].strike2}else setPath(s,p,v);
+  if(/^stats\.\d+\.1$/.test(p)&&v==null) setPath(s,p,0);
+  stratChanged(!/^(extra|plan|steps\.\d+\.[01]|stats\.\d+\.0|marks\.\d+\.t)$/.test(p));
+});
+$("stratView").addEventListener("click",e=>{const b=e.target.closest("[data-act]"); if(!b) return;
+  const act=b.dataset.act, card=b.closest("[data-i]"), i=card?+card.dataset.i:null, s=i!=null?strats[i]:null, j=+b.dataset.j, v=id=>$(id)?$(id).value:"";
+  if(act==="newStrat"){strats.unshift(nstrat({sym:"TSLA",name:"New strategy",stats:[["Banked",0],["Open credit",0]]}));editing=0;return stratChanged()}
+  if(act==="edit"){editing=i;renderStrategies();return}
+  if(act==="done"){editing=null;document.activeElement.blur();renderStrategies();return}
+  if(act==="delStrat"){if(b.dataset.sure){strats.splice(i,1);editing=null;return stratChanged()}b.dataset.sure=1;b.textContent="Tap again to delete";return}
+  if(act==="addStat"){s.stats.push(["Number",0])}
+  if(act==="delStat"){s.stats.splice(j,1)}
+  if(act==="addMark"){s.marks.push({t:"Break-even",v:priceOf(s.sym)?Math.round(priceOf(s.sym)):100})}
+  if(act==="delMark"){s.marks.splice(j,1)}
+  if(act==="delStep"){s.steps.splice(j,1)}
+  if(act==="delLeg"){const l=s.legs.splice(j,1)[0]; if(linkPos){const k=positions.findIndex(posMatch(s.sym,l)); if(k>=0) positions.splice(k,1)}}
+  if(act==="addLeg"){if(!v("nl_strike")||!v("nl_exp")){$("nl_strike").focus();return}
+    const l=nstrat({legs:[{kind:v("nl_kind"),side:v("nl_side"),strike:v("nl_strike"),strike2:v("nl_strike2")||null,exp:v("nl_exp"),qty:v("nl_qty"),prem:v("nl_prem"),label:v("nl_label")}]}).legs[0];
+    s.legs.push(l); if(linkPos&&!positions.some(posMatch(s.sym,l))) positions.push(norm({...l,sym:s.sym,label:l.label||s.name}))}
+  if(act==="addStep"){const t=v("ns_text").trim(); if(!t){$("ns_text").focus();return}
+    const amt=v("ns_amt")===""?null:+v("ns_amt"), sh=+v("ns_sh")||100;
+    s.steps.push([v("ns_date")?shortDate(v("ns_date")):shortDate(isoToday()),t,amt]);
+    if(amt&&$("ns_be").checked) s.marks.forEach(m=>m.v=Math.round((m.v-amt/sh)*100)/100)}
+  stratChanged(); if(act==="addLeg"||act==="delLeg") render();
+});
+let view=store.get("view","positions");
+function applyView(){const st=view==="strategies";$("posView").hidden=st;$("stratView").hidden=!st;$("vPos").setAttribute("aria-pressed",!st);$("vStrat").setAttribute("aria-pressed",st);if(st)renderStrategies()}
+$("vPos").onclick=()=>{view="positions";store.set("view",view);applyView()};
+$("vStrat").onclick=()=>{view="strategies";store.set("view",view);applyView()};
+const renderPositions=render; render=function(){renderPositions(); if(view==="strategies") renderStrategies()};
+applyView();
+
 save(false); render(); fetchQuotes(); schedule();
 </script>
 </body>
